@@ -21,3 +21,10 @@ pub async fn get_user(pool: &sqlx::PgPool, id: i32) -> Result<User, sqlx::Error>
         .await?;
     Ok(user)
 }
+
+pub async fn get_users(pool: &sqlx::PgPool) -> Result<Vec<User>, sqlx::Error> {
+    let users = sqlx::query_as("SELECT * FROM users")
+        .fetch_all(pool)
+        .await?;
+    Ok(users)
+}

@@ -3,7 +3,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::env;
 
 mod model;
-use model::{create_user, get_user};
+use model::{create_user, get_user, get_users};
 
 #[tokio::main]
 async fn main() {
@@ -16,10 +16,11 @@ async fn main() {
         .await
         .expect("Failed to create pool");
 
-    create_user(&pool, "akmal", "akmal@gmail.com")
-        .await
-        .unwrap();
-    let user = get_user(&pool, 1).await.unwrap();
-    println!("User : {:#?}", user);
+    // create_user(&pool, "shaxzod", "shaxzod@gmail.com")
+    //     .await
+    //     .unwrap();
+    // let user = get_user(&pool, 2).await.unwrap();
+    let users = get_users(&pool).await.unwrap();
+    println!("User : {:#?}", users);
     println!("User operations completed.");
 }
