@@ -1,4 +1,4 @@
-#[derive(sqlx::FromRow, Debug)]
+#[derive(sqlx::FromRow, Debug, serde::Serialize)]
 pub struct User {
     pub id: i32,
     pub name: String,
