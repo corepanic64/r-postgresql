@@ -1,21 +1,22 @@
 { self, pkgs, ... }:
+let
+  rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+    extensions = [
+      "rust-src"
+      "rust-analyzer"
+    ];
+  };
+in
 pkgs.mkShell {
   packages = with pkgs; [
-    # Rust
-    rustc
-    cargo
-    rustfmt
-    clippy
-    rust-analyzer
+    rustToolchain
     cargo-watch
-
     libiconv
-
     # Nix
     alejandra
     nixd
     deadnix
     statix
-    self.formatter.${system}
+    self.formatter.${pkgs.system}
   ];
 }
