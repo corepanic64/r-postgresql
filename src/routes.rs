@@ -12,11 +12,11 @@ pub async fn init_routes(pool: Pool<Postgres>) {
     let url = env::var("URL").expect("URL must be stet");
 
     let app = Router::new()
-        .route("/users", get(get_users))
-        .route("/user", post(create_user))
-        .route("/user/{id}", get(get_user_by_id))
-        .route("/user/{id}", put(update_user))
-        .route("/user/{id}", delete(delete_user))
+        .route("/users", get(get_users).post(create_user))
+        .route(
+            "/users{id}",
+            get(get_user_by_id).put(update_user).delete(delete_user),
+        )
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind(&url).await.unwrap();

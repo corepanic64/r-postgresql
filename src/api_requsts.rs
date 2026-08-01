@@ -61,6 +61,5 @@ pub async fn get_user_by_id(
 ) -> Result<Json<User>, (StatusCode, String)> {
     get_db_user_byid(&pool, id)
         .await
-        .map(|e| e)
         .map_err(|e| (StatusCode::NOT_FOUND, e.to_string()))
 }
