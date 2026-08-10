@@ -4,9 +4,12 @@ use axum::{
     response::Json,
 };
 
-use crate::users::{
-    db::{create_db_user, delete_db_user, get_db_user_byid, get_db_users, update_db_user},
-    model::{CreateUser, UpdateUser, User},
+use crate::{
+    model::DefaultResponse,
+    users::{
+        db::{create_db_user, delete_db_user, get_db_user_byid, get_db_users, update_db_user},
+        model::{CreateUser, UpdateUser, User},
+    },
 };
 
 pub async fn get_users(
@@ -21,7 +24,7 @@ pub async fn get_users(
 pub async fn create_user(
     State(pool): State<sqlx::PgPool>,
     Json(payload): Json<CreateUser>,
-) -> Result<StatusCode, (StatusCode, String)> {
+) -> Result<(StatusCode, Json<DefaultResponse>), (StatusCode, Json<DefaultResponse>)> {
     create_db_user(
         &pool,
         CreateUser {
@@ -30,8 +33,31 @@ pub async fn create_user(
         },
     )
     .await
-    .map(|_| StatusCode::CREATED)
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+    // .map(|_| {
+    //     (
+    //         StatusCode::CREATED,
+    //         Json(DefaultResponse {
+    //             success: true,
+    //             message: "User create successfully",
+    //         }),
+    //     )
+    // })
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(DefaultResponse {
+                success: false,
+                message: "ERROR",
+            }),
+        )
+    });
+    Ok((
+        StatusCode::CREATED,
+        Json(DefaultResponse {
+            success: true,
+            message: "User created successfully",
+        }),
+    ))
 }
 
 pub async fn update_user(
@@ -48,18 +74,41 @@ pub async fn update_user(
 pub async fn delete_user(
     State(pool): State<sqlx::PgPool>,
     Path(id): Path<i32>,
-) -> Result<StatusCode, (StatusCode, String)> {
+) -> Result<(StatusCode, Json<DefaultResponse>), (StatusCode, Json<DefaultResponse>)> {
     delete_db_user(&pool, id)
         .await
-        .map(|_| StatusCode::OK)
-        .map_err(|e| (StatusCode::NOT_FOUND, e.to_string()))
+        .map(|_| {
+            (
+                StatusCode::OK,
+                Json(DefaultResponse {
+                    success: true,
+                    message: "User deleted successfully",
+                }),
+            )
+        })
+        .map_err(|_| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(DefaultResponse {
+                    success: false,
+                    message: "User does not exist",
+                }),
+            )
+        })
 }
 
+#[axum::debug_handler]
 pub async fn get_user_by_id(
     State(pool): State<sqlx::PgPool>,
     Path(id): Path<i32>,
-) -> Result<Json<User>, (StatusCode, String)> {
-    get_db_user_byid(&pool, id)
-        .await
-        .map_err(|e| (StatusCode::NOT_FOUND, e.to_string()))
+) -> Result<Json<User>, (StatusCode, Json<DefaultResponse>)> {
+    get_db_user_byid(&pool, id).await.map_err(|_| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(DefaultResponse {
+                success: false,
+                message: "User does not exist",
+            }),
+        )
+    })
 }

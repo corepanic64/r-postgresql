@@ -1,4 +1,3 @@
-// use crate::model::{CreateUser, UpdateUser, User, UserFullResponse};
 use axum::extract::Json;
 use sqlx::Result;
 
@@ -52,7 +51,7 @@ pub async fn delete_db_user(pool: &sqlx::PgPool, id: i32) -> Result<(), sqlx::Er
 
 pub async fn find_user_by_email(
     pool: &sqlx::PgPool,
-    email: String,
+    email: &String,
 ) -> Result<UserFullResponse, sqlx::Error> {
     let user = sqlx::query_as::<_, UserFullResponse>("SELECT * FROM users WHERE email = $1")
         .bind(email)

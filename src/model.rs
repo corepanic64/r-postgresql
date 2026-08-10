@@ -1,4 +1,5 @@
-#[derive(sqlx::FromRow, Debug, serde::Serialize, serde::Deserialize)]
-pub struct ErrorResponse {
-    pub error: String,
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct DefaultResponse {
+    pub success: bool,
+    pub message: &'static str,
 }
