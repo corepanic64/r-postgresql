@@ -1,8 +1,8 @@
-mod api_requsts;
-mod db_requests;
+mod auth;
 mod model;
 mod postgres;
 mod routes;
+mod users;
 
 use crate::{postgres::init_postgres, routes::init_routes};
 

@@ -4,10 +4,10 @@ use axum::{
     response::Json,
 };
 
-use crate::db_requests::{
-    create_db_user, delete_db_user, get_db_user_byid, get_db_users, update_db_user,
+use crate::users::{
+    db::{create_db_user, delete_db_user, get_db_user_byid, get_db_users, update_db_user},
+    model::{CreateUser, UpdateUser, User},
 };
-use crate::model::{CreateUser, UpdateUser, User};
 
 pub async fn get_users(
     State(pool): State<sqlx::PgPool>,

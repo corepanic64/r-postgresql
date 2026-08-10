@@ -1,6 +1,8 @@
-use crate::model::{CreateUser, UpdateUser, User};
+// use crate::model::{CreateUser, UpdateUser, User, UserFullResponse};
 use axum::extract::Json;
 use sqlx::Result;
+
+use crate::users::model::{CreateUser, UpdateUser, User, UserFullResponse};
 
 pub async fn create_db_user(pool: &sqlx::PgPool, payload: CreateUser) -> Result<(), sqlx::Error> {
     sqlx::query("INSERT INTO users (name, email) VALUES ($1, $2)")
@@ -46,4 +48,15 @@ pub async fn delete_db_user(pool: &sqlx::PgPool, id: i32) -> Result<(), sqlx::Er
         .execute(pool)
         .await?;
     Ok(())
+}
+
+pub async fn find_user_by_email(
+    pool: &sqlx::PgPool,
+    email: String,
+) -> Result<UserFullResponse, sqlx::Error> {
+    let user = sqlx::query_as::<_, UserFullResponse>("SELECT * FROM users WHERE email = $1")
+        .bind(email)
+        .fetch_one(pool)
+        .await?;
+    Ok(user)
 }
