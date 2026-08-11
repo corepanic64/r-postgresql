@@ -33,15 +33,15 @@ pub async fn create_user(
         },
     )
     .await
-    // .map(|_| {
-    //     (
-    //         StatusCode::CREATED,
-    //         Json(DefaultResponse {
-    //             success: true,
-    //             message: "User create successfully",
-    //         }),
-    //     )
-    // })
+    .map(|_| {
+        (
+            StatusCode::CREATED,
+            Json(DefaultResponse {
+                success: true,
+                message: "User created successfully",
+            }),
+        )
+    })
     .map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -50,14 +50,7 @@ pub async fn create_user(
                 message: "ERROR",
             }),
         )
-    });
-    Ok((
-        StatusCode::CREATED,
-        Json(DefaultResponse {
-            success: true,
-            message: "User created successfully",
-        }),
-    ))
+    })
 }
 
 pub async fn update_user(
