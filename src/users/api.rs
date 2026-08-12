@@ -18,50 +18,16 @@ use crate::{
 
 pub async fn get_users(
     State(pool): State<sqlx::PgPool>,
-    headers: HeaderMap,
 ) -> Result<Json<Vec<User>>, (StatusCode, Json<DefaultResponse>)> {
-    let auth = headers.get("Authorization");
-    if let Some(token) = auth {
-        dotenv().ok();
-
-        let secret_key = env::var("SECRET_KEY").unwrap();
-        let mng = JwtManager::new(secret_key);
-        let n = token.to_str().unwrap();
-        let is_auth = mng.verify(n);
-        match is_auth {
-            Ok(r) => {
-                println!("USER_AUTHORIZED: {}", r.email);
-
-                get_db_users(&pool).await.map(Json).map_err(|e| {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(DefaultResponse {
-                            success: false,
-                            message: "UZURLI SERVERDA MUAMMO BOP QOLDI",
-                        }),
-                    )
-                })
-            }
-            Err(_) => {
-                println!("WRONG TOKEN");
-                Err((
-                    StatusCode::UNAUTHORIZED,
-                    Json(DefaultResponse {
-                        success: false,
-                        message: "BRAT TOKENIZ ESKI, YOKI XATO TOKEN, BITTA LOGIN QB KELIN",
-                    }),
-                ))
-            }
-        }
-    } else {
-        Err((
-            StatusCode::UNAUTHORIZED,
+    get_db_users(&pool).await.map(Json).map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
             Json(DefaultResponse {
                 success: false,
-                message: "HEADERGA TOKEN QOYIB JONATIN BRAT",
+                message: "UZURLI SERVERDA MUAMMO BOP QOLDI",
             }),
-        ))
-    }
+        )
+    })
 }
 
 pub async fn create_user(

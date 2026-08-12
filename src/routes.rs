@@ -10,8 +10,11 @@ use sqlx::{Pool, Postgres};
 use std::env;
 use tower::{Layer, ServiceBuilder};
 
-use crate::auth::{login::api::login, register::api::register};
 use crate::users::api::{create_user, delete_user, get_user_by_id, get_users, update_user};
+use crate::{
+    auth::{login::api::login, register::api::register},
+    layers::auth::auth_layer,
+};
 
 pub async fn init_routes(pool: Pool<Postgres>) {
     dotenv().ok();
@@ -32,7 +35,7 @@ pub async fn init_routes(pool: Pool<Postgres>) {
         .merge(users_routes)
         .merge(auth_routes)
         .merge(alohida)
-        .layer(middleware::from_fn(my_layer))
+        .layer(middleware::from_fn(auth_layer))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind(&url).await.unwrap();
