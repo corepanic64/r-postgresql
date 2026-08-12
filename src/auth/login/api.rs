@@ -1,7 +1,11 @@
+use std::env;
+
 use axum::{Json, extract::State, http::StatusCode};
+use dotenv::dotenv;
 
 use crate::{
     auth::{
+        jwt::JwtManager,
         login::model::{Login, LoginResponse},
         password_manager::PasswordManager,
     },
@@ -35,8 +39,9 @@ pub async fn login(
             }),
         ));
     }
-
-    Ok(Json(LoginResponse {
-        token: "bu_sening_access_tokening buni hechkimga berma".to_string(),
-    }))
+    dotenv().ok();
+    let secret_key = env::var("SECRET_KEY").unwrap();
+    let secret = JwtManager::new(secret_key);
+    let token = secret.generate_token(user_full.id, payload.email).unwrap();
+    Ok(Json(LoginResponse { token }))
 }
