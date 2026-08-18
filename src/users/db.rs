@@ -45,7 +45,7 @@ pub fn get_connection(pool: &DbPool) -> Result<DbConnection, DbError> {
 use chrono::Utc;
 use diesel::prelude::*;
 
-use crate::users::model::{NewUser, UpdateUser, User};
+use crate::users::model::{NewUser, UpdateUser, User, UserModified};
 use crate::users::schema::users;
 
 pub type DbResult<T> = Result<T, diesel::result::Error>;
@@ -57,10 +57,10 @@ pub fn create_user(conn: &mut DbConnection, new_user: NewUser) -> DbResult<User>
         .get_result(conn)
 }
 
-pub fn get_user_by_id(conn: &mut DbConnection, user_id: i32) -> DbResult<User> {
+pub fn get_user_by_id(conn: &mut DbConnection, user_id: i32) -> DbResult<UserModified> {
     users::table
         .find(user_id)
-        .select(User::as_select())
+        .select(UserModified::as_select())
         .first(conn)
 }
 
@@ -71,11 +71,15 @@ pub fn get_user_by_email(conn: &mut DbConnection, email: String) -> DbResult<Use
         .get_result(conn)
 }
 
-pub fn list_users(conn: &mut DbConnection, page: i64, per_page: i64) -> DbResult<Vec<User>> {
+pub fn list_users(
+    conn: &mut DbConnection,
+    page: i64,
+    per_page: i64,
+) -> DbResult<Vec<UserModified>> {
     let offset = (page - 1) * per_page;
 
     users::table
-        .select(User::as_select())
+        .select(UserModified::as_select())
         .order(users::created_at.desc())
         .limit(per_page)
         .offset(offset)

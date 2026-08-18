@@ -16,6 +16,18 @@ pub struct User {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Queryable, Selectable, Serialize, Debug)]
+#[diesel(table_name = users)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+// user struct without password. i need this
+pub struct UserModified {
+    pub id: i32,
+    pub email: String,
+    pub username: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
 #[derive(Debug, Insertable, Deserialize)]
 #[diesel(table_name = users)]
 pub struct NewUser {

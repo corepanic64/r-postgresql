@@ -1,6 +1,6 @@
 use crate::{
     auth::{login::api::login, register::api::register},
-    users::api::get_users,
+    users::api::{get_user_by_id, get_users, get_users_count},
 };
 use axum::{
     Router,
@@ -20,6 +20,8 @@ pub async fn init_routes(pool: DbPool) {
 
     let users_routes = Router::new()
         .route("/users", get(get_users))
+        .route("/users/count", get(get_users_count))
+        .route("/users/{id}", get(get_user_by_id))
         .route_layer(middleware::from_fn(my_user_layer));
 
     // let alohida = Router::new().route(

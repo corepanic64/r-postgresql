@@ -27,28 +27,35 @@ pub async fn login(
         )
     })?;
 
-    let user = get_user_by_email(&mut conn, payload.email.clone()).map_err(|_| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(DefaultResponse {
-                success: false,
-                message: "User not found",
-            }),
-        )
-    })?;
-    let valid = PasswordManager::verify_password(&payload.password, &user.password);
-    if !valid.unwrap() {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            Json(DefaultResponse {
-                success: false,
-                message: "You are not authorized",
-            }),
-        ));
+    let user = get_user_by_email(&mut conn, payload.email.clone());
+    match user {
+        Ok(r) => {
+            println!("user: {:?}", r);
+            let valid = PasswordManager::verify_password(&payload.password, &r.password);
+            if !valid.unwrap() {
+                return Err((
+                    StatusCode::UNAUTHORIZED,
+                    Json(DefaultResponse {
+                        success: false,
+                        message: "You are not authorized",
+                    }),
+                ));
+            }
+            dotenv().ok();
+            let secret_key = env::var("SECRET_KEY").unwrap();
+            let secret = JwtManager::new(secret_key);
+            let token = secret.generate_token(r.id, payload.email).unwrap();
+            Ok(Json(LoginResponse { token }))
+        }
+        Err(e) => {
+            println!("err: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(DefaultResponse {
+                    success: false,
+                    message: "fuck you",
+                }),
+            ))
+        }
     }
-    dotenv().ok();
-    let secret_key = env::var("SECRET_KEY").unwrap();
-    let secret = JwtManager::new(secret_key);
-    let token = secret.generate_token(user.id, payload.email).unwrap();
-    Ok(Json(LoginResponse { token }))
 }
