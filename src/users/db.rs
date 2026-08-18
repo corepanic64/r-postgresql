@@ -1,61 +1,105 @@
-use axum::extract::Json;
-use sqlx::Result;
+use diesel::pg::PgConnection;
+use diesel::r2d2::{ConnectionManager, Pool, PoolError, PooledConnection};
+use dotenv::dotenv;
+use std::env;
 
-use crate::users::model::{CreateUser, UpdateUser, User, UserFullResponse};
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
-pub async fn create_db_user(pool: &sqlx::PgPool, payload: CreateUser) -> Result<(), sqlx::Error> {
-    sqlx::query("INSERT INTO users (name, email) VALUES ($1, $2)")
-        .bind(&payload.name)
-        .bind(&payload.email)
-        .execute(pool)
-        .await?;
-    Ok(())
+pub type DbConnection = PooledConnection<ConnectionManager<PgConnection>>;
+
+#[derive(Debug)]
+pub enum DbError {
+    ConnectionError(String),
+    PoolError(PoolError),
 }
 
-pub async fn get_db_user_byid(pool: &sqlx::PgPool, id: i32) -> Result<Json<User>, sqlx::Error> {
-    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
-        .bind(id)
-        .fetch_one(pool)
-        .await?;
-    Ok(Json(user))
+impl std::fmt::Display for DbError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DbError::ConnectionError(msg) => write!(f, "Connection error: {}", msg),
+            DbError::PoolError(e) => write!(f, "Pool error: {}", e),
+        }
+    }
 }
 
-pub async fn get_db_users(pool: &sqlx::PgPool) -> Result<Vec<User>, sqlx::Error> {
-    let users = sqlx::query_as("SELECT * FROM users")
-        .fetch_all(pool)
-        .await?;
-    Ok(users)
+impl std::error::Error for DbError {}
+
+pub fn establish_connection_pool() -> Result<DbPool, DbError> {
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").map_err(|_| {
+        DbError::ConnectionError("DATABASE_URL must be set in .env file".to_string())
+    })?;
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    Pool::builder()
+        .max_size(10)
+        .min_idle(Some(2))
+        .test_on_check_out(true)
+        .build(manager)
+        .map_err(DbError::PoolError)
 }
 
-pub async fn update_db_user(
-    pool: &sqlx::PgPool,
-    id: i32,
-    user: &UpdateUser,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE users SET name = $1, email = $2 WHERE id = $3")
-        .bind(&user.name)
-        .bind(&user.email)
-        .bind(id)
-        .execute(pool)
-        .await?;
-    Ok(())
+pub fn get_connection(pool: &DbPool) -> Result<DbConnection, DbError> {
+    pool.get().map_err(DbError::PoolError)
 }
 
-pub async fn delete_db_user(pool: &sqlx::PgPool, id: i32) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM users WHERE id = $1")
-        .bind(id)
-        .execute(pool)
-        .await?;
-    Ok(())
+use chrono::Utc;
+use diesel::prelude::*;
+
+use crate::users::model::{NewUser, UpdateUser, User};
+use crate::users::schema::users;
+
+pub type DbResult<T> = Result<T, diesel::result::Error>;
+
+pub fn create_user(conn: &mut DbConnection, new_user: NewUser) -> DbResult<User> {
+    diesel::insert_into(users::table)
+        .values(&new_user)
+        .returning(User::as_returning())
+        .get_result(conn)
 }
 
-pub async fn find_user_by_email(
-    pool: &sqlx::PgPool,
-    email: &String,
-) -> Result<UserFullResponse, sqlx::Error> {
-    let user = sqlx::query_as::<_, UserFullResponse>("SELECT * FROM users WHERE email = $1")
-        .bind(email)
-        .fetch_one(pool)
-        .await?;
-    Ok(user)
+pub fn get_user_by_id(conn: &mut DbConnection, user_id: i32) -> DbResult<User> {
+    users::table
+        .find(user_id)
+        .select(User::as_select())
+        .first(conn)
+}
+
+pub fn get_user_by_email(conn: &mut DbConnection, email: String) -> DbResult<User> {
+    users::table
+        .select(User::as_select())
+        .filter(users::email.eq(email))
+        .get_result(conn)
+}
+
+pub fn list_users(conn: &mut DbConnection, page: i64, per_page: i64) -> DbResult<Vec<User>> {
+    let offset = (page - 1) * per_page;
+
+    users::table
+        .select(User::as_select())
+        .order(users::created_at.desc())
+        .limit(per_page)
+        .offset(offset)
+        .load(conn)
+}
+
+pub fn update_user(
+    conn: &mut DbConnection,
+    user_id: i32,
+    mut chages: UpdateUser,
+) -> DbResult<User> {
+    chages.updated_at = Some(Utc::now().naive_utc());
+    diesel::update(users::table.find(user_id))
+        .set(&chages)
+        .returning(User::as_returning())
+        .get_result(conn)
+}
+
+pub fn delete_user(conn: &mut DbConnection, user_id: i32) -> DbResult<User> {
+    diesel::delete(users::table.find(user_id))
+        .returning(User::as_returning())
+        .get_result(conn)
+}
+
+pub fn count_users(conn: &mut DbConnection) -> DbResult<i64> {
+    users::table.count().get_result(conn)
 }

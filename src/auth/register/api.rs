@@ -1,21 +1,30 @@
 use axum::{Json, extract::State, http::StatusCode};
 
 use crate::{
-    auth::{
-        password_manager::PasswordManager,
-        register::{db::register_db_user, model::Register},
-    },
+    auth::{password_manager::PasswordManager, register::db::register_user},
     model::DefaultResponse,
-    users::db::find_user_by_email,
+    users::{
+        db::{DbPool, get_user_by_email},
+        model::NewUser,
+    },
 };
 
 pub async fn register(
-    State(pool): State<sqlx::PgPool>,
-    Json(payload): Json<Register>,
+    State(pool): State<DbPool>,
+    Json(payload): Json<NewUser>,
 ) -> Result<StatusCode, (StatusCode, Json<DefaultResponse>)> {
-    let hashed_password = PasswordManager::hash_password(payload.password);
-    let user = find_user_by_email(&pool, &payload.email).await;
-
+    let hashed_password = PasswordManager::hash_password(payload.password.clone());
+    let mut conn = pool.get().map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(DefaultResponse {
+                success: false,
+                message: "serverda xatolik",
+            }),
+        )
+    })?;
+    let user = get_user_by_email(&mut conn, payload.email.clone());
+    println!("heel: {:?}", &payload);
     match user {
         Ok(_) => Err((
             StatusCode::UNAUTHORIZED,
@@ -24,15 +33,15 @@ pub async fn register(
                 message: "bu user mavjud !!!",
             }),
         )),
-        Err(_) => register_db_user(
-            &pool,
-            Register {
-                name: payload.name,
+        Err(_) => register_user(
+            &mut conn,
+            NewUser {
                 email: payload.email,
+                username: payload.username,
                 password: hashed_password.unwrap(),
             },
         )
-        .await
+        // .await
         .map(|_| StatusCode::CREATED)
         .map_err(|_| {
             (

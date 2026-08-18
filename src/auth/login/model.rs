@@ -1,10 +1,10 @@
-#[derive(Debug, serde::Deserialize, sqlx::FromRow)]
+#[derive(Debug, serde::Deserialize)]
 pub struct Login {
     pub email: String,
     pub password: String,
 }
 
-#[derive(sqlx::FromRow, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct LoginResponse {
     pub token: String,
 }

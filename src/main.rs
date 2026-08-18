@@ -1,5 +1,4 @@
 mod auth;
-mod layers;
 mod model;
 mod postgres;
 mod routes;

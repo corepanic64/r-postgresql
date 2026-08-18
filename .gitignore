@@ -3,3 +3,4 @@
 /result
 /Cargo.lock
 .env
+/migrations

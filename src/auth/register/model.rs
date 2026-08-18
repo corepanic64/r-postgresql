@@ -1,4 +1,4 @@
-#[derive(Debug, serde::Deserialize, sqlx::FromRow)]
+#[derive(Debug, serde::Deserialize)]
 pub struct Register {
     pub name: String,
     pub email: String,
