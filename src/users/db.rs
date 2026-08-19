@@ -45,17 +45,10 @@ pub fn get_connection(pool: &DbPool) -> Result<DbConnection, DbError> {
 use chrono::Utc;
 use diesel::prelude::*;
 
-use crate::users::model::{NewUser, UpdateUser, User, UserModified};
+use crate::users::model::{UpdateUser, User, UserModified};
 use crate::users::schema::users;
 
 pub type DbResult<T> = Result<T, diesel::result::Error>;
-
-pub fn create_user(conn: &mut DbConnection, new_user: NewUser) -> DbResult<User> {
-    diesel::insert_into(users::table)
-        .values(&new_user)
-        .returning(User::as_returning())
-        .get_result(conn)
-}
 
 pub fn get_user_by_id(conn: &mut DbConnection, user_id: i32) -> DbResult<UserModified> {
     users::table
